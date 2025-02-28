@@ -22,6 +22,7 @@ const config = {
     extend: {
       fontFamily: {
         sans: ["Haskoy", ...fontFamily.sans],
+        heading: ["Haskoy", ...fontFamily.sans],
       },
       colors: {
         border: "hsl(var(--border))",
@@ -32,10 +33,16 @@ const config = {
         primary: {
           DEFAULT: "hsl(var(--primary))",
           foreground: "hsl(var(--primary-foreground))",
+          teal: "#2A9D8F",
+          light: "#4DB6A9",
+          dark: "#1E7D73",
         },
         secondary: {
           DEFAULT: "hsl(var(--secondary))",
           foreground: "hsl(var(--secondary-foreground))",
+          coral: "#E76F51",
+          light: "#F4A261",
+          dark: "#C5553D",
         },
         destructive: {
           DEFAULT: "hsl(var(--destructive))",
@@ -94,9 +101,9 @@ const config = {
         },
       },
       borderRadius: {
-        lg: "var(--radius)",
-        md: "calc(var(--radius) - 2px)",
-        sm: "calc(var(--radius) - 4px)",
+        lg: "0",
+        md: "0",
+        sm: "0",
       },
       keyframes: {
         "accordion-down": {

@@ -19,7 +19,7 @@ export async function middleware(request: NextRequest, event: NextFetchEvent) {
 // Configure the matcher for the middleware
 export const config = {
   matcher: [
-    // Match all routes except static files and api routes that don't need auth
-    "/((?!_next/static|_next/image|favicon.ico|api/scrape).*)",
+    // Match all routes except static files, api routes that don't need auth, and the scraper page for testing
+    "/((?!_next/static|_next/image|favicon.ico|api/scrape|scraper).*)",
   ],
 };

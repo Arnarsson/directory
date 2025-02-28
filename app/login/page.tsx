@@ -1,4 +1,4 @@
-import { LogoAnimationLink } from "@/components/nav"
+import { LogoAnimationLink } from "@/components/logo-animation-link"
 
 import { LoginForm } from "./form"
 

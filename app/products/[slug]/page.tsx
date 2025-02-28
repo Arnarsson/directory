@@ -6,7 +6,9 @@ import { getProductById } from "@/app/actions/product"
 import { ProductDetails } from "./details"
 
 const ProductIdPage = async ({ params }: { params: { slug: string } }) => {
-  let data = await getProductById(params.slug)
+  // Fix the params access to avoid Next.js warnings
+  const slug = params?.slug || ""
+  let data = await getProductById(slug)
 
   if (!data) {
     notFound()

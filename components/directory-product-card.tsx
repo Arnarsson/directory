@@ -1,9 +1,9 @@
 "use client"
 
-import { useOptimistic } from "react"
+import { useOptimistic, startTransition } from "react"
 import Link from "next/link"
 import { motion } from "framer-motion"
-import { Tag } from "lucide-react"
+import { Tag, Eye } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 import MinimalCard, {
@@ -70,26 +70,38 @@ export const ProductLink: React.FC<{
 
   const handleClick = () => {
     const newClickCount = (optimisticResource.view_count || 0) + 1
-    addOptimisticUpdate({ view_count: newClickCount })
+    startTransition(() => {
+      addOptimisticUpdate({ view_count: newClickCount })
+    })
     incrementClickCount(data.id)
   }
 
   const url = isFeatured ? `"https://ethos-ai.cc"` : `/products/${data.id}`
-  console.log("url", url)
 
   return (
     <motion.div
       key={`resource-card-${data.id}-${order}`}
       layout
-      initial={{ opacity: 0, y: 10 }}
+      initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="group relative  break-inside-avoid w-full"
+      transition={{ 
+        type: "spring", 
+        stiffness: 100, 
+        damping: 15, 
+        delay: order * 0.05 
+      }}
+      whileHover={{ 
+        y: -5,
+        transition: { type: "spring", stiffness: 300, damping: 15 }
+      }}
+      className="group relative break-inside-avoid w-full"
     >
-      <div className="w-full">
+      <div className="w-full transform transition-all duration-300 hover:scale-[1.02]">
         <Link
           href={url || `/products/${data.id}`}
           key={`/products/${data.id}`}
           onClick={handleClick}
+          className="block focus:outline-none focus:ring-2 focus:ring-primary-teal/50 dark:focus:ring-secondary-coral/50"
         >
           <ResourceCard
             data={data}
@@ -110,17 +122,29 @@ export const FeaturedExternalLink: React.FC<{
     <motion.div
       key={`resource-card-${data.id}-${order}`}
       layout
-      initial={{ opacity: 0, y: 10 }}
+      initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="group relative  break-inside-avoid w-full"
+      transition={{ 
+        type: "spring", 
+        stiffness: 100, 
+        damping: 15, 
+        delay: order * 0.05 
+      }}
+      whileHover={{ 
+        y: -5,
+        scale: 1.02,
+        transition: { type: "spring", stiffness: 300, damping: 15 }
+      }}
+      className="group relative break-inside-avoid w-full"
     >
-      <div className="w-full">
+      <div className="w-full transform transition-all duration-300">
         <a
           href={data.product_website}
           target="_blank"
           rel="noreferrer noopener"
+          className="block focus:outline-none focus:ring-2 focus:ring-primary-teal/50 dark:focus:ring-secondary-coral/50"
         >
-          <ResourceCard data={data} view_count={0} trim={true} />
+          <ResourceCard data={data} view_count={0} trim={true} isFeatured={true} />
         </a>
       </div>
     </motion.div>
@@ -131,49 +155,90 @@ function ResourceCard({
   data,
   view_count,
   trim = false,
+  isFeatured = false,
 }: {
   data: Product
   view_count: number
   trim?: boolean
+  isFeatured?: boolean
 }) {
   return (
-    <MinimalCard className="w-full">
+    <MinimalCard className={cn(
+      "w-full border border-primary-teal/10 dark:border-secondary-coral/10 overflow-hidden",
+      "group-hover:border-primary-teal/30 dark:group-hover:border-secondary-coral/30",
+      "transition-all duration-300 ease-in-out",
+      isFeatured 
+        ? "bg-gradient-to-br from-primary-teal/5 to-primary-light/5 dark:from-secondary-coral/5 dark:to-secondary-light/5" 
+        : ""
+    )}>
       {data.logo_src ? (
-        <MinimalCardImage alt={data.codename} src={data.logo_src} />
+        <div className="relative overflow-hidden">
+          <MinimalCardImage alt={data.codename} src={data.logo_src} />
+          <div className="absolute inset-0 bg-gradient-to-t from-primary-teal/20 to-transparent dark:from-secondary-coral/20 opacity-50 group-hover:opacity-70 transition-opacity duration-300" />
+          
+          {/* Shine effect on hover */}
+          <div 
+            className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none"
+            style={{
+              background: 'linear-gradient(45deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.1) 50%, rgba(255,255,255,0) 100%)',
+              backgroundSize: '200% 200%',
+              animation: 'shine 1.5s ease-in-out infinite alternate'
+            }}
+          />
+        </div>
       ) : null}
 
-      <MinimalCardTitle className="font-semibold mb-0.5">
+      <MinimalCardTitle className="font-bold mb-1 text-gray-800 dark:text-gray-100 group-hover:text-primary-teal dark:group-hover:text-secondary-coral transition-colors duration-200">
         {data.codename.substring(0, 30)}
       </MinimalCardTitle>
-      <motion.p
+      
+      <motion.div
         initial={{ opacity: 0, y: 5 }}
         animate={{ opacity: 1, y: 0 }}
-        className="text-xs leading-3 mb-2 text-neutral-500"
+        className="flex items-center mb-2"
       >
-        {getLastPathSegment(data.product_website, 10)}
-      </motion.p>
-      <MinimalCardDescription className="text-sm">
+        <span className="text-xs leading-4 text-primary-teal/70 dark:text-secondary-coral/70 font-medium">
+          {getLastPathSegment(data.product_website, 10)}
+        </span>
+        <span className="mx-1 text-gray-400">•</span>
+        <span className="text-xs text-gray-500 dark:text-gray-400 italic">
+          {data.categories ? data.categories.split(',')[0] : ''}
+        </span>
+      </motion.div>
+      
+      <MinimalCardDescription className="text-sm text-gray-600 dark:text-gray-300 group-hover:text-gray-800 dark:group-hover:text-gray-200 transition-colors duration-200">
         {trim ? `${data.description.slice(0, 82)}...` : data.description}
       </MinimalCardDescription>
 
       <MinimalCardContent />
+      
       <MinimalCardFooter>
-        <div
+        <motion.div
+          initial={{ opacity: 0.8 }}
+          whileHover={{ scale: 1.05 }}
           className={cn(
-            "p-1 py-1.5 px-1.5 rounded-md text-neutral-500 flex items-center gap-1  absolute bottom-2 left-2 rounded-br-[16px]",
-            view_count > 1 ? "  block" : "hidden"
+            "py-1.5 px-2 flex items-center gap-1 absolute bottom-2 left-2",
+            view_count > 1 ? "block" : "hidden",
+            "bg-primary-teal/5 dark:bg-secondary-coral/5 text-primary-teal dark:text-secondary-coral",
+            "group-hover:bg-primary-teal/10 dark:group-hover:bg-secondary-coral/10 transition-colors duration-200"
           )}
         >
-          <p className="flex items-center gap-1 tracking-tight text-neutral pr-1 text-xs">
+          <Eye className="h-3 w-3" />
+          <p className="flex items-center tracking-tight text-xs font-medium">
             {view_count || data.view_count}
           </p>
-        </div>
-        <div className="p-1 py-1.5 px-1.5 rounded-md text-neutral-500 flex items-center gap-1  absolute bottom-2 right-2 rounded-br-[16px]">
-          <Tag className="h-4 w-4 ml-[1px]" />
-          <p className="flex items-center gap-1 tracking-tight text-neutral pr-1 text-xs">
-            {data.labels[0]}
+        </motion.div>
+        
+        <motion.div 
+          initial={{ opacity: 0.8 }}
+          whileHover={{ scale: 1.05 }}
+          className="py-1.5 px-2 flex items-center gap-1 absolute bottom-2 right-2 bg-primary-teal/5 dark:bg-secondary-coral/5 text-primary-teal dark:text-secondary-coral group-hover:bg-primary-teal/10 dark:group-hover:bg-secondary-coral/10 transition-colors duration-200"
+        >
+          <Tag className="h-3 w-3" />
+          <p className="flex items-center tracking-tight text-xs font-medium">
+            {data.labels && data.labels.length > 0 ? data.labels[0] : 'Tool'}
           </p>
-        </div>
+        </motion.div>
       </MinimalCardFooter>
     </MinimalCard>
   )

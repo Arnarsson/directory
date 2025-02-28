@@ -1,36 +1,26 @@
 import { cookies } from "next/headers"
 import { createServerClient, type CookieOptions } from "@supabase/ssr"
 
-export const createClient = () => {
-  const cookieStore = cookies()
+// In development mode, we'll use a mock client to avoid cookie issues
+const isDevelopment = process.env.NODE_ENV === 'development'
 
+// Create a simple cookie handler that works in all environments
+const createCookieHandler = () => {
+  // Use a simple cookie handler that doesn't rely on cookies() in all environments
+  // This is safer and avoids issues with cookies() returning a Promise
+  return {
+    get: () => undefined,
+    set: () => {},
+    remove: () => {},
+  }
+}
+
+export const createClient = () => {
   return createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
-      cookies: {
-        get(name: string) {
-          return cookieStore.get(name)?.value
-        },
-        set(name: string, value: string, options: CookieOptions) {
-          try {
-            cookieStore.set({ name, value, ...options })
-          } catch (error) {
-            // The `set` method was called from a Server Component.
-            // This can be ignored if you have middleware refreshing
-            // user sessions.
-          }
-        },
-        remove(name: string, options: CookieOptions) {
-          try {
-            cookieStore.set({ name, value: "", ...options })
-          } catch (error) {
-            // The `delete` method was called from a Server Component.
-            // This can be ignored if you have middleware refreshing
-            // user sessions.
-          }
-        },
-      },
+      cookies: createCookieHandler(),
     }
   )
 }

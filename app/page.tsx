@@ -45,7 +45,7 @@ async function Page({
         tags={filters.tags}
       />
 
-      <div className="max-w-full px-2 md:pl-4 md:pr-0 pt-2">
+      <div className="max-w-full px-2 md:pl-4 md:pr-0 pt-2 ml-48">
         <FadeIn>
           <ResourceCardGrid
             sortedData={data}

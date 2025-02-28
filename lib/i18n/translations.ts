@@ -63,7 +63,31 @@ export const en = {
   // Language selector
   "language": "Language",
   "english": "English",
-  "danish": "Danish"
+  "danish": "Danish",
+  
+  // Enhanced scraper UI
+  "selectLanguage": "Select language",
+  "displayLanguage": "Display language",
+  "original": "Original",
+  "scrapedMetadata": "Scraped Metadata",
+  "metadata": "Metadata",
+  "generatedArticle": "Generated Article",
+  "basicInfo": "Basic Information",
+  "title": "Title",
+  "description": "Description",
+  "website": "Website",
+  "classification": "Classification",
+  "categories": "Categories",
+  "pricing": "Pricing",
+  "pricingType": "Pricing Type",
+  "freeTrial": "Free trial available",
+  "price": "Price",
+  "pricingModel": "Pricing Model",
+  "generatedContent": "Generated Content",
+  "summary": "Summary",
+  "keyPoints": "Key Points",
+  "pros": "Pros",
+  "cons": "Cons"
 };
 
 // Danish translations
@@ -128,7 +152,31 @@ export const da = {
   // Language selector
   "language": "Sprog",
   "english": "Engelsk",
-  "danish": "Dansk"
+  "danish": "Dansk",
+  
+  // Enhanced scraper UI
+  "selectLanguage": "Vælg sprog",
+  "displayLanguage": "Visningssprog",
+  "original": "Original",
+  "scrapedMetadata": "Scrapede Metadata",
+  "metadata": "Metadata",
+  "generatedArticle": "Genereret Artikel",
+  "basicInfo": "Grundlæggende Information",
+  "title": "Titel",
+  "description": "Beskrivelse",
+  "website": "Hjemmeside",
+  "classification": "Klassifikation",
+  "categories": "Kategorier",
+  "pricing": "Priser",
+  "pricingType": "Pristype",
+  "freeTrial": "Gratis prøveperiode tilgængelig",
+  "price": "Pris",
+  "pricingModel": "Prismodel",
+  "generatedContent": "Genereret Indhold",
+  "summary": "Sammendrag",
+  "keyPoints": "Nøglepunkter",
+  "pros": "Fordele",
+  "cons": "Ulemper"
 };
 
 // Type for available languages

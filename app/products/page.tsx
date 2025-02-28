@@ -23,7 +23,12 @@ export default async function ProductsPage({
     tag?: string
   }
 }): Promise<ReactElement> {
-  const { search, category, label, tag } = searchParams
+  // Fix the searchParams access to avoid Next.js warnings
+  // In Next.js 14+, searchParams is a regular object, not a Promise
+  const search = searchParams?.search || undefined
+  const category = searchParams?.category || undefined
+  const label = searchParams?.label || undefined
+  const tag = searchParams?.tag || undefined
   const data = await getProducts(search, category, label, tag)
   let filters = await getCachedFilters()
 
@@ -35,7 +40,7 @@ export default async function ProductsPage({
         tags={filters.tags}
       />
 
-      <div className=" max-w-full pt-4">
+      <div className="max-w-full pt-4 ml-48">
         <FadeIn>
           <ResourceCardGrid sortedData={data} filteredFeaturedData={null}>
             {search ?? category ?? label ?? tag ? (

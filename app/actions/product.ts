@@ -5,7 +5,7 @@ import { cache } from "react"
 import { revalidatePath } from "next/cache"
 
 // Mock data for AI tools
-const mockProducts = [
+let mockProducts = [
   {
     id: "1",
     created_at: "2025-01-15T12:00:00Z",
@@ -139,4 +139,38 @@ export async function incrementClickCount(id: string) {
   }
   
   revalidatePath("/products");
+}
+
+// Function to add a new product from scraped data
+export async function addScrapedProduct(productData: any) {
+  // Generate a new ID (in a real app, this would be handled by the database)
+  const newId = (mockProducts.length + 1).toString();
+  
+  // Create a new product object
+  const newProduct = {
+    id: newId,
+    created_at: new Date().toISOString(),
+    full_name: productData.full_name || "Scraped from website",
+    email: productData.email || "scraped@example.com",
+    twitter_handle: productData.twitter_handle || "@scraped",
+    product_website: productData.product_website || "",
+    codename: productData.codename || "Unknown",
+    punchline: productData.punchline || "",
+    description: productData.description || "",
+    logo_src: productData.logo_src || "/placeholder.png",
+    user_id: productData.user_id || "dev-user-id",
+    tags: Array.isArray(productData.tags) ? productData.tags : productData.tags?.split(', ') || ["ai-tool"],
+    view_count: 0,
+    approved: true,
+    labels: Array.isArray(productData.labels) ? productData.labels : productData.labels?.split(', ') || ["unlabeled"],
+    categories: productData.categories || "AI Tools"
+  };
+  
+  // Add the new product to the mock products array
+  mockProducts.push(newProduct);
+  
+  // Revalidate the products page to show the new product
+  revalidatePath("/products");
+  
+  return newId;
 }

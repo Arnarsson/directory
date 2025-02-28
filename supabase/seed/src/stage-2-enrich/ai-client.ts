@@ -30,8 +30,9 @@ export const createAIClient = (config: AIClientConfig) => {
     schema: z.ZodSchema<T>,
     prompt: string
   ): Promise<GenerateObjectResult<T>> => {
+    // Use type assertion to fix type compatibility issues
     return generateObject({
-      model: client(model),
+      model: client(model) as any,
       schema,
       prompt,
     })

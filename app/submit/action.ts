@@ -3,16 +3,33 @@
 import "server-only"
 import { revalidatePath, revalidateTag } from "next/cache"
 import { createClient } from "@/db/supabase/server"
-import { anthropic } from "@ai-sdk/anthropic"
-import { generateObject } from "ai"
 
-import { getAIEnrichmentPrompt } from "./prompt"
-import { enrichmentSchema, schema } from "./schema"
+// Only import AI-related modules in production
+const isDevelopment = process.env.NODE_ENV === 'development'
+let anthropicModel: any
+let generateObjectFn: any
+let getAIEnrichmentPromptFn: any
+let enrichmentSchemaObj: any
+
+if (!isDevelopment) {
+  // Only import in production mode
+  const { anthropic } = require("@ai-sdk/anthropic")
+  const { generateObject } = require("ai")
+  const { getAIEnrichmentPrompt } = require("./prompt")
+  const { enrichmentSchema } = require("./schema")
+  
+  anthropicModel = anthropic("claude-3-haiku-20240307")
+  generateObjectFn = generateObject
+  getAIEnrichmentPromptFn = getAIEnrichmentPrompt
+  enrichmentSchemaObj = enrichmentSchema
+}
+
+import { schema } from "./schema"
 
 // Configuration object
 const config = {
-  aiEnrichmentEnabled: true,
-  aiModel: anthropic("claude-3-haiku-20240307"), // You can change this to another model if needed
+  // Disable AI enrichment in development mode to simplify testing
+  aiEnrichmentEnabled: !isDevelopment,
   storageBucket: "product-logos",
   cacheControl: "3600",
   allowNewTags: true,
@@ -42,6 +59,13 @@ async function uploadLogoFile(
   logoFile: File,
   codename: string
 ): Promise<string> {
+  // In development mode, just mock the file upload
+  if (isDevelopment) {
+    console.log(`[DEV MODE] Mocking file upload for ${logoFile.name}`)
+    return `https://example.com/mock-logo-${Date.now()}.png`
+  }
+  
+  // In production mode, actually perform the file upload
   const fileExt = logoFile.name.split(".").pop()
   const fileName = `${Date.now()}.${fileExt}`
   const filePath = `${codename}/${fileName}`
@@ -76,136 +100,29 @@ async function insertIfNotExists(
 ): Promise<void> {
   console.log(`Attempting to insert ${name} into ${table}`)
 
+  // In development mode, just mock the database operation
+  if (isDevelopment) {
+    console.log(`[DEV MODE] Mocking insertion of ${name} into ${table}`)
+    return Promise.resolve()
+  }
+
+  // In production mode, actually perform the database operation
   const { error } = await db
     .from(table)
     .insert([{ name }], { onConflict: "name" })
 
-  if (error && !error.message.includes("duplicate key value")) {
-    console.error(`Error inserting into ${table}: ${error.message}`)
-    throw new Error(`Error inserting into ${table}: ${error.message}`)
+  if (error) {
+    // Check if error.message exists before using includes
+    const isDuplicateKeyError = error.message && error.message.includes("duplicate key value");
+    if (!isDuplicateKeyError) {
+      const errorMessage = error.message || "Unknown error";
+      console.error(`Error inserting into ${table}: ${errorMessage}`);
+      throw new Error(`Error inserting into ${table}: ${errorMessage}`);
+    }
   }
 
   console.log(`${name} successfully inserted or already exists in ${table}`)
 }
-
-// Generates the AI enrichment prompt with examples
-
-// Main function to handle the form submission
-// export async function onSubmitToolAction(
-//   prevState: FormState,
-//   formData: FormData
-// ): Promise<FormState> {
-//   const db = createClient()
-//   const data = Object.fromEntries(formData.entries())
-//   const parsed = schema.safeParse(data)
-
-//   if (!parsed.success) {
-//     console.error("Form validation failed")
-//     const fields: Record<string, string> = {}
-//     for (const key of Object.keys(data)) {
-//       fields[key] = data[key].toString()
-//     }
-//     return {
-//       message: "Invalid form data",
-//       fields,
-//       issues: parsed.error.issues.map((issue) => issue.message),
-//     }
-//   }
-
-//   try {
-//     const { data: authData, error: authError } = await db.auth.getUser()
-//     if (authError || !authData.user) {
-//       console.error("User authentication failed")
-//       throw new Error("User authentication failed")
-//     }
-//     const user = authData.user
-
-//     let logoUrl = ""
-//     const logoFile = formData.get("images") as File
-//     if (logoFile) {
-//       logoUrl = await uploadLogoFile(db, logoFile, parsed.data.codename)
-//     }
-
-//     let tags: Enrichment["tags"] = []
-//     let labels: Enrichment["labels"] = ["unlabeled"]
-
-//     if (config.aiEnrichmentEnabled) {
-//       console.log("Generating AI enrichment data")
-//       const enrichmentPrompt = getAIEnrichmentPrompt(
-//         parsed.data.codename,
-//         parsed.data.categories,
-//         parsed.data.description
-//       )
-//       const { object: enrichment } = await generateObject({
-//         model: config.aiModel,
-//         schema: enrichmentSchema,
-//         prompt: enrichmentPrompt,
-//       })
-
-//       tags = enrichment.tags
-//       labels = enrichment.labels ?? ["unlabeled"]
-
-//       if (config.allowNewTags) {
-//         for (const tag of tags) {
-//           await insertIfNotExists(db, "tags", tag)
-//         }
-//       }
-
-//       if (config.allowNewLabels) {
-//         for (const label of labels) {
-//           await insertIfNotExists(db, "labels", label)
-//         }
-//       }
-//     }
-
-//     if (config.allowNewCategories) {
-//       await insertIfNotExists(db, "categories", parsed.data.categories)
-//     }
-
-//     const productData = {
-//       full_name: parsed.data.fullName,
-//       email: parsed.data.email,
-//       twitter_handle: parsed.data.twitterHandle,
-//       product_website: parsed.data.productWebsite,
-//       codename: parsed.data.codename,
-//       punchline: parsed.data.punchline,
-//       description: parsed.data.description,
-//       logo_src: logoUrl,
-//       categories: parsed.data.categories,
-//       user_id: user.id,
-//       tags,
-//       labels,
-//     }
-
-//     console.log("Inserting product data")
-//     const { error } = await db.from("products").insert([productData]).select()
-
-//     if (error) {
-//       console.error(`Error inserting product data: ${error.message}`)
-//       throw new Error(error.message)
-//     }
-
-//     console.log("Product data successfully inserted")
-//     revalidatePath("/")
-//     revalidateTag("product-filters")
-
-//     return { message: "Tool submitted successfully", issues: [] }
-//   } catch (error) {
-//     console.error(
-//       `Submission failed: ${
-//         isErrorWithMessage(error) ? error.message : "Unknown error occurred"
-//       }`
-//     )
-//     return {
-//       message: `Submission failed: ${
-//         isErrorWithMessage(error) ? error.message : "Unknown error occurred"
-//       }`,
-//       issues: [
-//         isErrorWithMessage(error) ? error.message : "Unknown error occurred",
-//       ],
-//     }
-//   }
-// }
 
 export async function submitProductFormAction(
   prevState: FormState,
@@ -246,52 +163,90 @@ export async function createProduct(
   }
 
   try {
-    const { data: authData, error: authError } = await db.auth.getUser()
-    if (authError || !authData.user) {
-      console.error("User authentication failed")
-      throw new Error("User authentication failed")
+    // In development mode, bypass authentication check
+    let user = { id: 'dev-user-id' };
+    
+    // Only check authentication in production
+    if (!isDevelopment) {
+      const { data: authData, error: authError } = await db.auth.getUser()
+      if (authError || !authData.user) {
+        console.error("User authentication failed")
+        throw new Error("User authentication failed")
+      }
+      user = authData.user
+    } else {
+      console.log("Development mode: Authentication bypassed")
     }
-    const user = authData.user
 
     let logoUrl = ""
     if (logoFile) {
       logoUrl = await uploadLogoFile(db, logoFile, parsed.data.codename)
     }
 
-    let tags: Enrichment["tags"] = []
+    // Default values for tags and labels
+    let tags: Enrichment["tags"] = ["ai-tool", "scraped"]
     let labels: Enrichment["labels"] = ["unlabeled"]
 
-    if (config.aiEnrichmentEnabled) {
+    // Only use AI enrichment in production mode
+    if (config.aiEnrichmentEnabled && !isDevelopment) {
       console.log("Generating AI enrichment data")
-      const enrichmentPrompt = getAIEnrichmentPrompt(
+      const enrichmentPrompt = getAIEnrichmentPromptFn(
         parsed.data.codename,
         parsed.data.categories,
         parsed.data.description
       )
-      const { object: enrichment } = await generateObject({
-        model: config.aiModel,
-        schema: enrichmentSchema,
+      const { object: enrichment } = await generateObjectFn({
+        model: anthropicModel,
+        schema: enrichmentSchemaObj,
         prompt: enrichmentPrompt,
       })
 
       tags = enrichment.tags
       labels = enrichment.labels ?? ["unlabeled"]
-
-      if (config.allowNewTags) {
+    } else {
+      console.log("Development mode: AI enrichment bypassed")
+    }
+    
+    // Insert tags and labels
+    if (config.allowNewTags) {
+      try {
         for (const tag of tags) {
-          await insertIfNotExists(db, "tags", tag)
+          try {
+            await insertIfNotExists(db, "tags", tag)
+          } catch (error) {
+            console.error(`Error inserting tag "${tag}":`, error)
+            // Continue with other tags even if one fails
+          }
         }
+      } catch (error) {
+        console.error("Error inserting tags:", error)
+        // Continue with product creation even if tags insertion fails
       }
+    }
 
-      if (config.allowNewLabels) {
+    if (config.allowNewLabels) {
+      try {
         for (const label of labels) {
-          await insertIfNotExists(db, "labels", label)
+          try {
+            await insertIfNotExists(db, "labels", label)
+          } catch (error) {
+            console.error(`Error inserting label "${label}":`, error)
+            // Continue with other labels even if one fails
+          }
         }
+      } catch (error) {
+        console.error("Error inserting labels:", error)
+        // Continue with product creation even if labels insertion fails
       }
     }
 
     if (config.allowNewCategories) {
-      await insertIfNotExists(db, "categories", parsed.data.categories)
+      try {
+        await insertIfNotExists(db, "categories", parsed.data.categories)
+      } catch (error) {
+        console.error(`Error inserting category "${parsed.data.categories}":`, error)
+        // Continue with product creation even if category insertion fails
+      }
     }
 
     const productData = {
@@ -309,12 +264,42 @@ export async function createProduct(
       labels,
     }
 
-    console.log("Inserting product data")
-    const { error } = await db.from("products").insert([productData]).select()
+    // In development mode, just mock the database operation
+    if (isDevelopment) {
+      console.log("[DEV MODE] Mocking product insertion:", productData)
+      // Simulate successful insertion
+    } else {
+      // In production mode, actually perform the database operation
+      try {
+        console.log("Inserting product data:", productData)
+        const { error } = await db.from("products").insert([productData]).select()
 
-    if (error) {
-      console.error(`Error inserting product data: ${error.message}`)
-      throw new Error(error.message)
+        if (error) {
+          console.error(`Error inserting product data: ${error.message || "Unknown error"}`)
+          throw new Error(error.message || "Unknown error inserting product data")
+        }
+      } catch (error) {
+        console.error("Error during product insertion:", error)
+        // Create a simplified version without tags and labels if that's causing issues
+        try {
+          console.log("Trying simplified product insertion without tags and labels")
+          const simplifiedProductData = {
+            ...productData,
+            tags: ["ai-tool"], // Minimal tags
+            labels: ["unlabeled"], // Minimal labels
+          }
+          
+          const { error } = await db.from("products").insert([simplifiedProductData]).select()
+          
+          if (error) {
+            console.error(`Error inserting simplified product data: ${error.message || "Unknown error"}`)
+            throw new Error(error.message || "Unknown error inserting simplified product data")
+          }
+        } catch (fallbackError) {
+          console.error("Fallback insertion also failed:", fallbackError)
+          throw fallbackError
+        }
+      }
     }
 
     console.log("Product data successfully inserted")

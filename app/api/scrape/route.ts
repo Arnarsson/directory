@@ -1,24 +1,32 @@
 import { NextRequest, NextResponse } from "next/server"
+import { scrapeWebsite, ScrapedMetadata } from "@/lib/scraper"
 
-interface ScrapedMetadata {
-  title: string
-  description: string
-  ogTitle?: string
-  ogDescription?: string
-  ogImage?: string
-  url: string
-  domain: string
-  name: string
-}
+export const dynamic = 'force-dynamic'; // Disable caching for this route
 
 export async function POST(request: NextRequest) {
+  console.log("API route called with request:", request.url);
+  
   try {
-    const { url } = await request.json()
+    // Parse the request body as JSON
+    let body;
+    try {
+      body = await request.json();
+      console.log("Request body:", body);
+    } catch (error) {
+      console.error("Error parsing JSON:", error);
+      return NextResponse.json(
+        { error: "Invalid JSON in request body" },
+        { status: 400, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+    
+    const { url, language = 'original' } = body;
     
     if (!url) {
+      console.error("URL is required");
       return NextResponse.json(
         { error: "URL is required" },
-        { status: 400 }
+        { status: 400, headers: { 'Content-Type': 'application/json' } }
       )
     }
     
@@ -26,63 +34,55 @@ export async function POST(request: NextRequest) {
     try {
       new URL(url)
     } catch (error) {
+      console.error("Invalid URL format:", url);
       return NextResponse.json(
         { error: "Invalid URL format" },
-        { status: 400 }
+        { status: 400, headers: { 'Content-Type': 'application/json' } }
       )
     }
     
-    const metadata = await scrapeWebsite(url)
-    
-    return NextResponse.json({ metadata })
+    try {
+      console.log("Scraping website:", url);
+      // Use our enhanced scraper module
+      const metadata = await scrapeWebsite(url)
+      console.log("Scraping successful, returning metadata");
+      
+      // Return the response with appropriate content type
+      return NextResponse.json(
+        { 
+          metadata,
+          language,
+          availableLanguages: ['original', 'danish'],
+          cacheStatus: 'fresh'
+        },
+        { 
+          headers: { 
+            'Content-Type': 'application/json',
+            'Cache-Control': 'max-age=3600, s-maxage=3600, stale-while-revalidate=86400'
+          } 
+        }
+      )
+    } catch (scrapeError) {
+      console.error("Scraper error:", scrapeError)
+      
+      return NextResponse.json(
+        { 
+          error: scrapeError instanceof Error 
+            ? scrapeError.message 
+            : "Failed to scrape website" 
+        },
+        { 
+          status: 500, 
+          headers: { 'Content-Type': 'application/json' } 
+        }
+      )
+    }
   } catch (error) {
     console.error("Scraper API error:", error)
+    
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Unknown error" },
-      { status: 500 }
+      { status: 500, headers: { 'Content-Type': 'application/json' } }
     )
-  }
-}
-
-async function scrapeWebsite(url: string): Promise<ScrapedMetadata> {
-  try {
-    // Fetch the HTML content
-    const response = await fetch(url, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.6778.85 Safari/537.36'
-      }
-    })
-    
-    if (!response.ok) {
-      throw new Error(`Failed to fetch URL: ${response.statusText}`)
-    }
-    
-    const html = await response.text()
-    
-    // Extract metadata using regex
-    const titleMatch = html.match(/<title>(.*?)<\/title>/i)
-    const descriptionMatch = html.match(/<meta\s+name=["']description["']\s+content=["'](.*?)["']/i)
-    const ogTitleMatch = html.match(/<meta\s+property=["']og:title["']\s+content=["'](.*?)["']/i)
-    const ogDescriptionMatch = html.match(/<meta\s+property=["']og:description["']\s+content=["'](.*?)["']/i)
-    const ogImageMatch = html.match(/<meta\s+property=["']og:image["']\s+content=["'](.*?)["']/i)
-    
-    // Extract domain name for the codename
-    const domain = new URL(url).hostname.replace("www.", "")
-    const domainParts = domain.split(".")
-    const name = domainParts[0].charAt(0).toUpperCase() + domainParts[0].slice(1)
-    
-    return {
-      title: titleMatch?.[1] || "",
-      description: descriptionMatch?.[1] || "",
-      ogTitle: ogTitleMatch?.[1] || "",
-      ogDescription: ogDescriptionMatch?.[1] || "",
-      ogImage: ogImageMatch?.[1] || "",
-      url,
-      domain,
-      name,
-    }
-  } catch (error) {
-    console.error("Error scraping website:", error)
-    throw error
   }
 }

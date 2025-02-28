@@ -50,7 +50,7 @@ const crawler = new PuppeteerCrawler({
     // Specify to use puppeteer-extra as the launcher
     launcher: puppeteerExtra,
     launchOptions: {
-      headless: true,
+      // Removed headless option to avoid type errors
     },
   },
   maxConcurrency: 20,

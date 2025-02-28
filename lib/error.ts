@@ -1,4 +1,3 @@
-import { isRedirectError } from "next/dist/client/components/redirect"
 import { toast } from "sonner"
 import { z } from "zod"
 
@@ -12,7 +11,8 @@ export function getErrorMessage(err: unknown) {
     return errors.join("\n")
   } else if (err instanceof Error) {
     return err.message
-  } else if (isRedirectError(err)) {
+  } else if (typeof err === 'object' && err !== null && 'digest' in err) {
+    // This is likely a Next.js redirect error
     throw err
   } else {
     return unknownError

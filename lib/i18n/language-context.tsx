@@ -5,6 +5,7 @@ import { Language, TranslationKey, getTranslation } from './translations';
 
 type LanguageContextType = {
   language: Language;
+  currentLanguage: 'original' | 'danish'; // Added for scraper UI
   setLanguage: (lang: Language) => void;
   t: (key: TranslationKey) => string;
   translateContent: (content: string) => Promise<string>;
@@ -57,8 +58,17 @@ export const LanguageProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  // Determine current language for scraper UI
+  const currentLanguage = language === 'da' ? 'danish' : 'original';
+
   return (
-    <LanguageContext.Provider value={{ language, setLanguage, t, translateContent }}>
+    <LanguageContext.Provider value={{ 
+      language, 
+      currentLanguage, 
+      setLanguage, 
+      t, 
+      translateContent 
+    }}>
       {children}
     </LanguageContext.Provider>
   );
@@ -70,5 +80,5 @@ export const useLanguage = () => {
   if (context === undefined) {
     throw new Error('useLanguage must be used within a LanguageProvider');
   }
-  return context;
+  return context!;
 };

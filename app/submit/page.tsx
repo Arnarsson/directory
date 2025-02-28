@@ -28,7 +28,7 @@ export default async function ProtectedSubmitPage(): Promise<ReactElement> {
         tags={filters.tags}
       />
 
-      <div className="flex flex-col md:flex-row items-start justify-center py-12 px-4 md:px-0">
+      <div className="flex flex-col md:flex-row items-start justify-center py-12 px-4 md:px-0 ml-48">
         <div className="flex flex-col items-start justify-center gap-2 md:pl-48">
           <div className="flex items-center space-x-2">
             <h1 className="text-5xl font-black ">_submit</h1>
